@@ -43,10 +43,12 @@ const SaasCompaniesView: React.FC = () => {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyPlan, setNewCompanyPlan] = useState<'free'|'basic'|'pro'|'enterprise'>('free');
   const [creating, setCreating] = useState(false);
+  const [nameError, setNameError] = useState('');
 
   // Form States - Assign Owner
   const [ownerEmail, setOwnerEmail] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [ownerEmailError, setOwnerEmailError] = useState('');
 
   // Helper State
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -69,7 +71,11 @@ const SaasCompaniesView: React.FC = () => {
   // 2. Create Company Logic
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCompanyName.trim()) return;
+    
+    if (!newCompanyName.trim()) {
+      setNameError('O nome da empresa é obrigatório.');
+      return;
+    }
 
     setCreating(true);
     try {
@@ -83,6 +89,7 @@ const SaasCompaniesView: React.FC = () => {
       // Reset form
       setNewCompanyName('');
       setNewCompanyPlan('free');
+      setNameError('');
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erro ao criar empresa:", error);
@@ -96,12 +103,20 @@ const SaasCompaniesView: React.FC = () => {
   const openOwnerModal = (companyId: string) => {
     setSelectedCompanyId(companyId);
     setOwnerEmail('');
+    setOwnerEmailError('');
     setIsOwnerModalOpen(true);
   };
 
   const handleAssignOwner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ownerEmail || !selectedCompanyId) return;
+    setOwnerEmailError('');
+    
+    if (!ownerEmail.trim()) {
+       setOwnerEmailError('Digite o email do usuário.');
+       return;
+    }
+    
+    if (!selectedCompanyId) return;
 
     setAssigning(true);
     try {
@@ -114,7 +129,7 @@ const SaasCompaniesView: React.FC = () => {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        alert("Usuário não encontrado. Peça para ele se cadastrar na plataforma primeiro.");
+        setOwnerEmailError("Usuário não encontrado.");
         setAssigning(false);
         return;
       }
@@ -134,7 +149,7 @@ const SaasCompaniesView: React.FC = () => {
         companyName: company.name
       });
 
-      alert(`Sucesso! O usuário ${ownerEmail} agora é dono da empresa ${company.name}.`);
+      // alert(`Sucesso! O usuário ${ownerEmail} agora é dono da empresa ${company.name}.`);
       setIsOwnerModalOpen(false);
 
     } catch (error) {
@@ -186,7 +201,11 @@ const SaasCompaniesView: React.FC = () => {
         </div>
         
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setIsModalOpen(true);
+            setNewCompanyName('');
+            setNameError('');
+          }}
           className="bg-accent-600 hover:bg-accent-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-accent-600/20 flex items-center gap-2 transition-all active:scale-95 w-fit"
         >
           <Plus size={20} />
@@ -317,18 +336,26 @@ const SaasCompaniesView: React.FC = () => {
               <button onClick={() => setIsModalOpen(false)} className="text-text-400 hover:text-text-900">✕</button>
             </div>
             
-            <form onSubmit={handleCreateCompany} className="p-6 space-y-4">
+            <form onSubmit={handleCreateCompany} className="p-6 space-y-4" noValidate>
               <div>
                 <label className="block text-sm font-medium text-text-700 mb-1.5">Nome da Empresa</label>
                 <input 
                   type="text" 
                   value={newCompanyName}
-                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  onChange={(e) => {
+                    setNewCompanyName(e.target.value);
+                    if(nameError) setNameError('');
+                  }}
                   placeholder="Ex: Tech Solutions Ltda"
-                  className="w-full px-4 py-2.5 rounded-xl bg-background-100 border border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20 outline-none"
+                  className={`
+                    w-full px-4 py-2.5 rounded-xl outline-none border transition-all
+                    ${nameError 
+                      ? 'bg-red-50 border-red-300 text-red-900 focus:ring-2 focus:ring-red-200 focus:border-red-500' 
+                      : 'bg-background-100 border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20'}
+                  `}
                   autoFocus
-                  required
                 />
+                {nameError && <p className="mt-1 text-xs text-red-500 font-medium">{nameError}</p>}
               </div>
 
               <div>
@@ -355,7 +382,7 @@ const SaasCompaniesView: React.FC = () => {
 
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-background-300 text-text-700 hover:bg-background-100 font-medium">Cancelar</button>
-                <button type="submit" disabled={creating || !newCompanyName} className="flex-1 px-4 py-2.5 rounded-xl bg-accent-600 hover:bg-accent-700 text-white font-medium shadow-lg shadow-accent-600/20 transition-all flex justify-center items-center gap-2">
+                <button type="submit" disabled={creating} className="flex-1 px-4 py-2.5 rounded-xl bg-accent-600 hover:bg-accent-700 text-white font-medium shadow-lg shadow-accent-600/20 transition-all flex justify-center items-center gap-2">
                   {creating ? <Loader2 className="animate-spin" size={18} /> : 'Criar Empresa'}
                 </button>
               </div>
@@ -372,7 +399,7 @@ const SaasCompaniesView: React.FC = () => {
               <h3 className="text-xl font-bold text-text-900">Vincular Dono</h3>
               <button onClick={() => setIsOwnerModalOpen(false)} className="text-text-400 hover:text-text-900">✕</button>
             </div>
-            <form onSubmit={handleAssignOwner} className="p-6 space-y-4">
+            <form onSubmit={handleAssignOwner} className="p-6 space-y-4" noValidate>
                <p className="text-sm text-text-600">
                  Digite o email do usuário cadastrado na plataforma para torná-lo <strong>Admin</strong> desta empresa.
                </p>
@@ -381,15 +408,23 @@ const SaasCompaniesView: React.FC = () => {
                 <input 
                   type="email" 
                   value={ownerEmail}
-                  onChange={(e) => setOwnerEmail(e.target.value)}
+                  onChange={(e) => {
+                    setOwnerEmail(e.target.value);
+                    if(ownerEmailError) setOwnerEmailError('');
+                  }}
                   placeholder="usuario@email.com"
-                  className="w-full px-4 py-2.5 rounded-xl bg-background-100 border border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20 outline-none"
+                  className={`
+                    w-full px-4 py-2.5 rounded-xl outline-none border transition-all
+                    ${ownerEmailError 
+                      ? 'bg-red-50 border-red-300 text-red-900 focus:ring-2 focus:ring-red-200 focus:border-red-500' 
+                      : 'bg-background-100 border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20'}
+                  `}
                   autoFocus
-                  required
                 />
+                {ownerEmailError && <p className="mt-1 text-xs text-red-500 font-medium">{ownerEmailError}</p>}
               </div>
               <div className="pt-2">
-                 <button type="submit" disabled={assigning || !ownerEmail} className="w-full px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all flex justify-center items-center gap-2">
+                 <button type="submit" disabled={assigning} className="w-full px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all flex justify-center items-center gap-2">
                   {assigning ? <Loader2 className="animate-spin" size={18} /> : 'Vincular Usuário'}
                 </button>
               </div>

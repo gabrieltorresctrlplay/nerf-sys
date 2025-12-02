@@ -3,7 +3,6 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfi
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { Loader2, AlertCircle, CheckSquare, Square, User, Mail, Lock } from 'lucide-react';
-import { UserProfile } from '../types';
 
 const LoginView: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,7 +17,8 @@ const LoginView: React.FC = () => {
 
   // Estados de controle
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); // Erro geral (API)
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({}); // Erros por campo
 
   const resetForm = () => {
     setIdentifier('');
@@ -28,6 +28,7 @@ const LoginView: React.FC = () => {
     setConfirmPassword('');
     setTermsAccepted(false);
     setError(null);
+    setFieldErrors({});
   };
 
   const handleModeSwitch = () => {
@@ -35,11 +36,68 @@ const LoginView: React.FC = () => {
     resetForm();
   };
 
+  // Validação Customizada
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    let isValid = true;
+
+    if (isLogin) {
+      if (!identifier.trim()) {
+        errors.identifier = "Digite seu email ou usuário.";
+        isValid = false;
+      }
+      if (!password) {
+        errors.password = "Digite sua senha.";
+        isValid = false;
+      }
+    } else {
+      if (!username.trim()) {
+        errors.username = "Escolha um nome de usuário.";
+        isValid = false;
+      } else if (username.length < 3) {
+        errors.username = "Mínimo de 3 caracteres.";
+        isValid = false;
+      }
+      
+      if (!email.trim()) {
+        errors.email = "Email obrigatório.";
+        isValid = false;
+      } else if (!/\S+@\S+\.\S+/.test(email)) {
+        errors.email = "Email inválido.";
+        isValid = false;
+      }
+
+      if (!password) {
+        errors.password = "Senha obrigatória.";
+        isValid = false;
+      } else if (password.length < 6) {
+        errors.password = "Mínimo de 6 caracteres.";
+        isValid = false;
+      }
+
+      if (password !== confirmPassword) {
+        errors.confirmPassword = "As senhas não coincidem.";
+        isValid = false;
+      }
+
+      if (!termsAccepted) {
+        setError('Você deve aceitar os Termos de Uso.'); // Erro geral
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
   // Lógica de Login (Email ou Username)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
 
     try {
       let emailToLogin = identifier;
@@ -74,19 +132,7 @@ const LoginView: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    // Validações Pré-Envio
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
-      return;
-    }
-    if (!termsAccepted) {
-      setError('Você deve aceitar os Termos de Uso para continuar.');
-      return;
-    }
-    if (username.length < 3) {
-      setError('O nome de usuário deve ter pelo menos 3 caracteres.');
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
@@ -103,20 +149,16 @@ const LoginView: React.FC = () => {
       const user = userCredential.user;
 
       // 3. Cria Perfil no Firestore
-      // IMPORTANTE: Role começa como 'visitor' ou undefined.
-      // O Superuser precisa vincular este usuário a uma empresa para virar 'admin'.
       const newProfile: any = {
         uid: user.uid,
         email: user.email!,
         username: username,
         displayName: username, 
-        role: 'visitor', // Visitante até ser atribuído
+        role: 'visitor', 
         createdAt: new Date().toISOString()
       };
 
       await setDoc(doc(db, 'users', user.uid), newProfile);
-      
-      // Atualiza Display Name no Auth também
       await updateProfile(user, { displayName: username });
 
     } catch (err: any) {
@@ -130,19 +172,28 @@ const LoginView: React.FC = () => {
   // Tratamento de Erros
   const handleAuthError = (err: any) => {
     if (err.message === 'username-taken') {
-      setError('Este nome de usuário já está em uso.');
+      setFieldErrors(prev => ({ ...prev, username: 'Este usuário já existe.' }));
     } else if (err.message === 'user-not-found-by-username') {
       setError('Usuário não encontrado.');
     } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
       setError('Credenciais incorretas.');
     } else if (err.code === 'auth/email-already-in-use') {
-      setError('Este email já está cadastrado.');
+      setFieldErrors(prev => ({ ...prev, email: 'Este email já está em uso.' }));
     } else if (err.code === 'auth/weak-password') {
-      setError('A senha deve ter pelo menos 6 caracteres.');
+      setFieldErrors(prev => ({ ...prev, password: 'A senha é muito fraca.' }));
     } else {
       setError('Ocorreu um erro. Tente novamente.');
     }
   };
+
+  // Helper de estilo para inputs com erro
+  const getInputClass = (fieldName: string) => `
+    w-full pl-10 pr-4 py-2.5 rounded-xl transition-all outline-none border
+    ${fieldErrors[fieldName] 
+      ? 'bg-red-50 border-red-300 text-red-900 focus:ring-2 focus:ring-red-200 focus:border-red-500 placeholder-red-300' 
+      : 'bg-background-100 border-background-300 text-text-900 focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600'
+    }
+  `;
 
   return (
     <div className="min-h-screen bg-background-100 flex items-center justify-center p-4">
@@ -170,25 +221,28 @@ const LoginView: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-4">
+          <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-4" noValidate>
             
             {/* MODO LOGIN: INPUT ÚNICO */}
             {isLogin && (
               <div>
                 <label className="block text-sm font-medium text-text-700 mb-1.5">Email ou Usuário</label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400">
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.identifier ? 'text-red-400' : 'text-text-400'}`}>
                     <User size={18} />
                   </div>
                   <input 
                     type="text" 
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 text-text-900 focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all"
+                    className={getInputClass('identifier')}
                     placeholder="user123 ou email@exemplo.com"
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      setIdentifier(e.target.value);
+                      if(fieldErrors.identifier) setFieldErrors({...fieldErrors, identifier: ''});
+                    }}
                   />
                 </div>
+                {fieldErrors.identifier && <p className="mt-1 text-xs text-red-500 font-medium ml-1">{fieldErrors.identifier}</p>}
               </div>
             )}
 
@@ -198,35 +252,41 @@ const LoginView: React.FC = () => {
                  <div>
                   <label className="block text-sm font-medium text-text-700 mb-1.5">Usuário</label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400">
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.username ? 'text-red-400' : 'text-text-400'}`}>
                       <User size={18} />
                     </div>
                     <input 
                       type="text" 
-                      required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 text-text-900 focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all"
+                      className={getInputClass('username')}
                       placeholder="seu_usuario"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))} // Força lowercase e sem espaço
+                      onChange={(e) => {
+                        setUsername(e.target.value.toLowerCase().replace(/\s/g, ''));
+                        if(fieldErrors.username) setFieldErrors({...fieldErrors, username: ''});
+                      }} 
                     />
                   </div>
+                  {fieldErrors.username && <p className="mt-1 text-xs text-red-500 font-medium ml-1">{fieldErrors.username}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-text-700 mb-1.5">Email</label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400">
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.email ? 'text-red-400' : 'text-text-400'}`}>
                       <Mail size={18} />
                     </div>
                     <input 
                       type="email" 
-                      required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 text-text-900 focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all"
+                      className={getInputClass('email')}
                       placeholder="seu@email.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if(fieldErrors.email) setFieldErrors({...fieldErrors, email: ''});
+                      }}
                     />
                   </div>
+                  {fieldErrors.email && <p className="mt-1 text-xs text-red-500 font-medium ml-1">{fieldErrors.email}</p>}
                 </div>
               </>
             )}
@@ -235,18 +295,21 @@ const LoginView: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-text-700 mb-1.5">Senha</label>
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400">
+                <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.password ? 'text-red-400' : 'text-text-400'}`}>
                   <Lock size={18} />
                 </div>
                 <input 
                   type="password" 
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 text-text-900 focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all"
+                  className={getInputClass('password')}
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if(fieldErrors.password) setFieldErrors({...fieldErrors, password: ''});
+                  }}
                 />
               </div>
+              {fieldErrors.password && <p className="mt-1 text-xs text-red-500 font-medium ml-1">{fieldErrors.password}</p>}
             </div>
 
             {/* CONFIRMAÇÃO DE SENHA (SÓ REGISTRO) */}
@@ -254,25 +317,28 @@ const LoginView: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-text-700 mb-1.5">Confirmar Senha</label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400">
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.confirmPassword ? 'text-red-400' : 'text-text-400'}`}>
                     <Lock size={18} />
                   </div>
                   <input 
                     type="password" 
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 text-text-900 focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all"
+                    className={getInputClass('confirmPassword')}
                     placeholder="••••••••"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if(fieldErrors.confirmPassword) setFieldErrors({...fieldErrors, confirmPassword: ''});
+                    }}
                   />
                 </div>
+                {fieldErrors.confirmPassword && <p className="mt-1 text-xs text-red-500 font-medium ml-1">{fieldErrors.confirmPassword}</p>}
               </div>
             )}
 
             {/* TERMOS DE USO (SÓ REGISTRO) */}
             {!isLogin && (
               <div 
-                className="flex items-start gap-3 p-3 rounded-lg border border-background-200 cursor-pointer hover:bg-background-100 transition-colors"
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${termsAccepted ? 'border-accent-200 bg-accent-50/50' : 'border-background-200 hover:bg-background-100'}`}
                 onClick={() => setTermsAccepted(!termsAccepted)}
               >
                 <div className={`mt-0.5 ${termsAccepted ? 'text-accent-600' : 'text-text-400'}`}>

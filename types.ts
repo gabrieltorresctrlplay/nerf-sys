@@ -2,16 +2,20 @@ import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
 // Tipos de Cargo
-export type UserRole = 'superuser' | 'admin' | 'employee';
+// visitor: recém cadastrado, sem empresa
+// superuser: dono do saas
+// admin: dono de uma empresa cliente
+// employee: funcionário de uma empresa cliente
+export type UserRole = 'superuser' | 'admin' | 'employee' | 'visitor';
 
 // Perfil Estendido do Usuário (Salvo no Firestore)
 export interface UserProfile {
   uid: string;
   email: string;
-  username?: string; // Novo campo
+  username?: string;
   displayName?: string;
   role: UserRole;
-  companyId?: string; // ID da empresa à qual pertence (null se for superuser)
+  companyId?: string; // ID da empresa à qual pertence (null se for superuser ou visitor)
   companyName?: string;
 }
 
@@ -22,7 +26,7 @@ export interface Company {
   plan: 'free' | 'basic' | 'pro' | 'enterprise';
   status: 'active' | 'inactive';
   createdAt: any; // Firestore Timestamp
-  ownerEmail?: string; // Email do dono (opcional para criação inicial)
+  ownerEmail?: string; // Email do dono
 }
 
 export interface NavItem {
@@ -39,13 +43,13 @@ export interface SidebarProps {
   toggleCollapse: () => void;
   currentView: string;
   onNavigate: (viewId: string) => void;
-  userRole: UserRole; // Passando o cargo para controlar o menu
+  userRole: UserRole;
 }
 
 export interface TopbarProps {
   toggleSidebar: () => void;
   isCollapsed: boolean;
-  roleLabel: string; // Para mostrar o cargo na barra superior
+  roleLabel: string;
 }
 
 export interface LayoutProps {
