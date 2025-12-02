@@ -22,12 +22,8 @@ import {
   MoreVertical, 
   Copy, 
   Check, 
-  ShieldCheck,
-  Zap,
-  Star,
-  Box,
-  Loader2,
-  UserPlus
+  UserPlus,
+  Loader2
 } from 'lucide-react';
 
 const SaasCompaniesView: React.FC = () => {
@@ -41,7 +37,7 @@ const SaasCompaniesView: React.FC = () => {
   
   // Form States - Create Company
   const [newCompanyName, setNewCompanyName] = useState('');
-  const [newCompanyPlan, setNewCompanyPlan] = useState<'free'|'basic'|'pro'|'enterprise'>('free');
+  // Removido estado de plano, agora será automático
   const [creating, setCreating] = useState(false);
   const [nameError, setNameError] = useState('');
 
@@ -81,14 +77,13 @@ const SaasCompaniesView: React.FC = () => {
     try {
       await addDoc(collection(db, 'companies'), {
         name: newCompanyName,
-        plan: newCompanyPlan,
+        plan: 'enterprise', // Padrão máximo para todos, sem distinção
         status: 'active',
         createdAt: serverTimestamp(),
       });
       
       // Reset form
       setNewCompanyName('');
-      setNewCompanyPlan('free');
       setNameError('');
       setIsModalOpen(false);
     } catch (error) {
@@ -149,7 +144,6 @@ const SaasCompaniesView: React.FC = () => {
         companyName: company.name
       });
 
-      // alert(`Sucesso! O usuário ${ownerEmail} agora é dono da empresa ${company.name}.`);
       setIsOwnerModalOpen(false);
 
     } catch (error) {
@@ -178,16 +172,6 @@ const SaasCompaniesView: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Render Helpers
-  const getPlanIcon = (plan: string) => {
-    switch (plan) {
-      case 'enterprise': return <ShieldCheck className="text-purple-600" size={18} />;
-      case 'pro': return <Zap className="text-amber-500" size={18} />;
-      case 'basic': return <Star className="text-blue-500" size={18} />;
-      default: return <Box className="text-gray-400" size={18} />;
-    }
-  };
-
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -197,7 +181,7 @@ const SaasCompaniesView: React.FC = () => {
             <Building2 className="text-accent-600" size={32} />
             Empresas Cadastradas
           </h1>
-          <p className="text-text-600 mt-2">Gerencie os clientes do seu SaaS (Nível 1).</p>
+          <p className="text-text-600 mt-2">Gerencie os clientes do seu SaaS.</p>
         </div>
         
         <button 
@@ -245,7 +229,7 @@ const SaasCompaniesView: React.FC = () => {
                 <tr className="bg-background-100/50 text-text-500 text-xs uppercase tracking-wider border-b border-background-200">
                   <th className="px-6 py-4 font-semibold">Empresa / ID</th>
                   <th className="px-6 py-4 font-semibold">Dono (Admin)</th>
-                  <th className="px-6 py-4 font-semibold">Plano</th>
+                  {/* Coluna de Plano Removida */}
                   <th className="px-6 py-4 font-semibold">Status</th>
                   <th className="px-6 py-4 font-semibold text-right">Ações</th>
                 </tr>
@@ -283,14 +267,6 @@ const SaasCompaniesView: React.FC = () => {
                           <UserPlus size={14} /> Vincular Dono
                         </button>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {getPlanIcon(company.plan)}
-                        <span className="text-sm font-medium capitalize text-text-700">
-                          {company.plan}
-                        </span>
-                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <button 
@@ -358,27 +334,7 @@ const SaasCompaniesView: React.FC = () => {
                 {nameError && <p className="mt-1 text-xs text-red-500 font-medium">{nameError}</p>}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-text-700 mb-1.5">Plano de Assinatura</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['free', 'basic', 'pro', 'enterprise'] as const).map((plan) => (
-                     <button
-                       key={plan}
-                       type="button"
-                       onClick={() => setNewCompanyPlan(plan)}
-                       className={`
-                         flex items-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all
-                         ${newCompanyPlan === plan 
-                           ? 'border-accent-600 bg-accent-50 text-accent-700 ring-1 ring-accent-600' 
-                           : 'border-background-200 bg-background-50 text-text-600 hover:bg-background-100'}
-                       `}
-                     >
-                        {getPlanIcon(plan)}
-                        <span className="capitalize">{plan}</span>
-                     </button>
-                  ))}
-                </div>
-              </div>
+              {/* Seleção de Plano Removida - Padrão interno 'enterprise' */}
 
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-background-300 text-text-700 hover:bg-background-100 font-medium">Cancelar</button>
@@ -391,7 +347,7 @@ const SaasCompaniesView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Definir Dono */}
+      {/* Modal de Definir Dono (Sem Alterações) */}
       {isOwnerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-background-50 rounded-2xl w-full max-w-sm shadow-2xl border border-background-200 overflow-hidden animate-in zoom-in-95 duration-200">

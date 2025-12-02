@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Layout from './components/Layout';
 import LoginView from './components/LoginView';
 import SaasCompaniesView from './components/SaasCompaniesView';
+import EmployeesView from './components/EmployeesView';
 import { useTheme } from './contexts/ThemeContext';
 import { useAuth } from './contexts/AuthContext';
 import { 
@@ -18,7 +19,8 @@ import {
   Zap,
   Wrench,
   BarChart3,
-  Lock
+  Lock,
+  FileText
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO GLOBAL ---
@@ -65,7 +67,7 @@ const SettingsView = () => {
                 `}
               >
                 <div className={`p-3 rounded-full w-fit ${theme === t ? 'bg-accent-200 text-accent-700' : 'bg-background-200 text-text-600'}`}>
-                   {t === 'light' ? <Sun size={24}/> : t === 'dark' ? <Moon size={24}/> : <Laptop size={24}/>}
+                   {t === 'system' ? <Laptop size={24}/> : t === 'light' ? <Sun size={24}/> : <Moon size={24}/>}
                 </div>
                 <div>
                   <span className="block font-semibold text-text-900 capitalize">
@@ -217,7 +219,7 @@ const EmployeeDashboard: React.FC<{ onNavigate: (v:string) => void }> = ({ onNav
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {['Gerador de Relatórios', 'Automação de Email', 'Chat Corporativo'].map((tool, idx) => (
+        {['Gestão de Tarefas', 'Automação de Email', 'Chat Corporativo'].map((tool, idx) => (
           <button 
             key={idx}
             onClick={() => onNavigate('app-tools')}
@@ -316,14 +318,14 @@ const App: React.FC = () => {
 
       case 'admin':
         if (currentView === 'dashboard') return <CompanyAdminDashboard onNavigate={setCurrentView} />;
-        if (currentView === 'employees') return <PlaceholderPage title="Gestão de Equipe" icon={Users} />;
+        if (currentView === 'employees') return <EmployeesView />; // AGORA USA A VIEW REAL
         if (currentView === 'financial') return <PlaceholderPage title="Financeiro da Empresa" icon={CreditCard} />;
-        if (currentView === 'app-tools') return <PlaceholderPage title="Ferramentas do App" icon={Wrench} />;
+        if (currentView === 'app-tools') return <PlaceholderPage title="Ferramentas" icon={Wrench} />;
         break;
 
       case 'employee':
         if (currentView === 'dashboard') return <EmployeeDashboard onNavigate={setCurrentView} />;
-        if (currentView === 'app-tools') return <PlaceholderPage title="Ferramentas de Trabalho" icon={Wrench} />;
+        if (currentView === 'app-tools') return <PlaceholderPage title="Ferramentas" icon={Wrench} />;
         break;
       
       default:
