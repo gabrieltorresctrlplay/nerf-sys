@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu, ShieldCheck, Briefcase, User } from 'lucide-react';
-import { TopbarProps } from '../docs/types';
+import { TopbarProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 const Topbar: React.FC<TopbarProps> = ({ toggleSidebar, isCollapsed, roleLabel }) => {

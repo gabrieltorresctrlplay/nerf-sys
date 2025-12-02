@@ -12,7 +12,7 @@ import {
   Wrench,
   Activity
 } from 'lucide-react';
-import { NavItem, SidebarProps, UserRole } from '../docs/types';
+import { NavItem, SidebarProps, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 const Sidebar: React.FC<SidebarProps> = ({ 
