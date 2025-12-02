@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { Loader2, AlertCircle, CheckSquare, Square, User, Mail, Lock } from 'lucide-react';
 
 const LoginView: React.FC = () => {

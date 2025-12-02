@@ -12,7 +12,7 @@ import {
   where,
   getDocs
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '../lib/firebase';
 import { Company } from '../types';
 import { 
   Building2, 

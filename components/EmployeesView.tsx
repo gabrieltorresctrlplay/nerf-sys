@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { initializeApp, deleteApp, getApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { db, firebaseConfig } from '@/lib/firebase';
+import { db, firebaseConfig } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Users, 
