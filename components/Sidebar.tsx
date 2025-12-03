@@ -8,11 +8,10 @@ import {
   Users,
   Building2,
   Briefcase,
-  ShieldAlert,
   Wrench,
   Activity
 } from 'lucide-react';
-import { NavItem, SidebarProps, UserRole } from '../types';
+import { NavItem, SidebarProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -28,15 +27,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   const { logout } = useAuth();
 
-  // Define os itens de menu baseados no cargo
   const navItems: NavItem[] = useMemo(() => {
     const common: NavItem[] = [
-       // Todos veem configurações básicas (perfil, tema)
        { id: 'settings', label: 'Configurações', icon: Settings },
     ];
 
     switch (userRole) {
-      case 'superuser': // DONO DO SAAS
+      case 'superuser':
         return [
           { id: 'dashboard', label: 'Visão Geral (SaaS)', icon: LayoutDashboard },
           { id: 'saas-companies', label: 'Gerenciar Empresas', icon: Building2 },
@@ -44,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           ...common
         ];
       
-      case 'admin': // DONO DA EMPRESA CLIENTE
+      case 'admin':
         return [
           { id: 'dashboard', label: 'Painel da Empresa', icon: LayoutDashboard },
           { id: 'employees', label: 'Funcionários', icon: Users },
@@ -53,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           ...common
         ];
 
-      case 'employee': // FUNCIONÁRIO DA EMPRESA
+      case 'employee':
         return [
           { id: 'dashboard', label: 'Minhas Tarefas', icon: LayoutDashboard },
           { id: 'app-tools', label: 'Ferramentas', icon: Wrench },
@@ -65,37 +62,35 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   }, [userRole]);
 
-  // Width logic
+  // Styling logic
   const sidebarWidth = isCollapsed ? 'w-20' : 'w-64';
   const mobileClasses = isMobile 
     ? (isOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64') 
     : `${sidebarWidth}`;
 
+  // Glassmorphism classes applied here
   const sidebarClasses = `
     fixed top-0 left-0 z-40 h-screen 
-    bg-background-50 border-r border-background-200
+    glass-panel border-r border-glass-border
     transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] flex flex-col
     ${mobileClasses}
   `;
 
-  const overlayClasses = `
-    fixed inset-0 bg-black/50 z-30 transition-opacity duration-300
-    ${isMobile && isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}
-  `;
-
-  // Helper para controlar a visibilidade de montagem
   const showLogo = !isCollapsed || (isMobile && isOpen);
 
   return (
     <>
       {/* Mobile Overlay */}
-      <div className={overlayClasses} onClick={onClose} aria-hidden="true" />
+      <div
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 transition-opacity duration-300 ${isMobile && isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      {/* Sidebar Element */}
       <aside className={sidebarClasses}>
         
         {/* HEADER */}
-        <div className="flex items-center h-16 px-3 relative shrink-0 border-b border-background-200">
+        <div className="flex items-center h-16 px-3 relative shrink-0 border-b border-glass-border">
           
           <div className="w-14 flex items-center justify-center shrink-0 relative h-10">
             <div 
@@ -105,13 +100,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ${showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}
               `}
             >
-               <div className={`
-                 h-9 w-9 flex items-center justify-center rounded-xl text-background-50
-                 ${userRole === 'superuser' ? 'bg-purple-600' : userRole === 'admin' ? 'bg-accent-600' : 'bg-blue-600'}
-               `}>
-                <span className="font-bold text-xl">
-                  {userRole === 'superuser' ? 'S' : userRole === 'admin' ? 'E' : 'F'}
-                </span>
+               <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                <span className="font-bold text-xl heading-font">N</span>
               </div>
             </div>
 
@@ -120,8 +110,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={toggleCollapse}
                 className={`
                   absolute inset-0 flex items-center justify-center
-                  bg-accent-50 text-accent-700
-                  rounded-xl hover:bg-accent-100
+                  bg-white/20 hover:bg-white/40 text-gray-700 dark:text-gray-200
+                  rounded-xl backdrop-blur-md
                   transition-all duration-300 ease-in-out cursor-pointer
                   ${!showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}
                 `}
@@ -134,10 +124,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className={`
             flex flex-col justify-center overflow-hidden whitespace-nowrap
             transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)]
-            ${showLogo ? 'w-32 opacity-100 ml-1' : 'w-0 opacity-0 ml-0'}
+            ${showLogo ? 'w-32 opacity-100 ml-2' : 'w-0 opacity-0 ml-0'}
           `}>
-            <span className="font-bold text-xl text-text-900 tracking-tight leading-none pl-2">
-              Nerfas<span className="text-accent-600">SaaS</span>
+            <span className="font-bold text-xl text-gray-900 dark:text-white tracking-tight leading-none">
+              Nerfas<span className="text-indigo-600 dark:text-indigo-400">SaaS</span>
             </span>
           </div>
 
@@ -146,8 +136,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               onClick={toggleCollapse}
               className={`
                 absolute right-3 p-1.5
-                text-text-400 hover:text-accent-600
-                hover:bg-background-100 rounded-lg
+                text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400
+                hover:bg-black/5 dark:hover:bg-white/10 rounded-lg
                 transition-all duration-200
               `}
             >
@@ -157,12 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav 
-          className={`
-            flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col gap-2 custom-scrollbar
-            px-3
-          `}
-        >
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col gap-2 custom-scrollbar px-3">
           {navItems.map((item) => {
             const isActive = currentView === item.id;
             
@@ -176,8 +161,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`
                   relative flex items-center h-12 rounded-xl transition-all duration-200 group w-full text-left
                   ${isActive 
-                    ? 'bg-accent-100 text-accent-800 font-medium'
-                    : 'text-text-600 hover:bg-background-100 hover:text-text-900'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10'
                   }
                 `}
               >
@@ -192,10 +177,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                   {item.label}
                 </span>
 
+                {/* Tooltip for collapsed state */}
                 {!isMobile && !showLogo && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 bg-text-800 text-background-50 text-xs font-medium px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-xl z-50 whitespace-nowrap translate-x-2 group-hover:translate-x-0">
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-xl z-50 whitespace-nowrap translate-x-2 group-hover:translate-x-0">
                     {item.label}
-                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-text-800"></div>
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
                   </div>
                 )}
               </button>
@@ -203,28 +189,28 @@ const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* User Role Badge (Apenas visível quando aberto) */}
+        {/* Role Badge */}
         {showLogo && (
-          <div className="px-6 py-2">
+          <div className="px-6 py-4">
             <div className={`
-              text-xs font-bold uppercase tracking-wider py-1 px-2 rounded-md text-center border
-              ${userRole === 'superuser' ? 'bg-purple-100 text-purple-700 border-purple-200' : 
-                userRole === 'admin' ? 'bg-amber-100 text-amber-700 border-amber-200' : 
-                'bg-blue-100 text-blue-700 border-blue-200'}
+              text-xs font-bold uppercase tracking-wider py-1.5 px-2 rounded-lg text-center border backdrop-blur-sm
+              ${userRole === 'superuser' ? 'bg-purple-100/50 text-purple-800 border-purple-200' :
+                userRole === 'admin' ? 'bg-amber-100/50 text-amber-800 border-amber-200' :
+                'bg-blue-100/50 text-blue-800 border-blue-200'}
             `}>
               {userRole === 'superuser' ? 'Desenvolvedor' : 
-               userRole === 'admin' ? 'Dono da Empresa' : 'Colaborador'}
+               userRole === 'admin' ? 'Gestor' : 'Colaborador'}
             </div>
           </div>
         )}
 
         {/* Footer */}
-        <div className="p-3 border-t border-background-200 mt-auto">
+        <div className="p-3 border-t border-glass-border mt-auto">
           <button
             onClick={logout}
             className={`
               w-full flex items-center h-12 rounded-xl text-left transition-all duration-200 group relative
-              text-text-600 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20
+              text-gray-600 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400
             `}
           >
             <div className="w-14 flex items-center justify-center shrink-0">

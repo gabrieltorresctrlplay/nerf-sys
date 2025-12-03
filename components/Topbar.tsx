@@ -1,90 +1,59 @@
 import React from 'react';
-import { Menu, ShieldCheck, Briefcase, User } from 'lucide-react';
+import { Menu, Bell } from 'lucide-react';
 import { TopbarProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 const Topbar: React.FC<TopbarProps> = ({ toggleSidebar, isCollapsed, roleLabel }) => {
-  const { user, userProfile } = useAuth();
-
-  // Pega as iniciais do email ou nome
-  const getInitials = () => {
-    if (userProfile?.displayName) {
-      return userProfile.displayName.substring(0, 2).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return 'U';
-  };
-
-  const displayName = userProfile?.displayName || user?.email?.split('@')[0] || 'Usuário';
-  const companyName = userProfile?.companyName;
-
-  // Ícone baseado no cargo
-  const getRoleIcon = () => {
-    switch (userProfile?.role) {
-      case 'superuser': return <ShieldCheck size={16} className="text-purple-600" />;
-      case 'admin': return <Briefcase size={16} className="text-amber-600" />;
-      default: return <User size={16} className="text-blue-600" />;
-    }
-  };
+  const { userProfile } = useAuth();
 
   return (
     <header 
       className={`
-        h-16 bg-background-50/80 backdrop-blur-md 
-        border-b border-background-200
-        fixed top-0 right-0 z-30 transition-all duration-300
-        flex items-center justify-between px-4 md:px-6
+        h-16 fixed top-0 right-0 z-20 flex items-center justify-between px-4 md:px-8
+        transition-all duration-300 ease-in-out
+        glass-panel border-b border-glass-border
+        ${isCollapsed ? 'left-20' : 'md:left-64 left-0'}
       `}
-      style={{ left: 0 }}
     >
-      {/* Spacer para empurrar o conteúdo dependendo da sidebar (apenas desktop) */}
-      <div 
-        className={`transition-all duration-300 hidden md:block`}
-        style={{ width: isCollapsed ? '5rem' : '16rem' }} 
-      />
-
-      {/* Lado Esquerdo: Toggle Mobile e Infos da Empresa */}
-      <div className="flex items-center gap-4 flex-1 overflow-hidden">
+      <div className="flex items-center gap-4">
         <button 
           onClick={toggleSidebar}
-          className="p-2 rounded-lg text-text-600 hover:bg-background-100 md:hidden focus:outline-none shrink-0"
-          aria-label="Abrir menu"
+          className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
         >
           <Menu size={24} />
         </button>
 
-        {companyName && userProfile?.role !== 'superuser' && (
-          <div className="flex flex-col">
-             <span className="text-xs text-text-500 font-medium uppercase tracking-wide">Empresa</span>
-             <span className="text-sm font-bold text-text-900 truncate">{companyName}</span>
-          </div>
-        )}
-
-        {userProfile?.role === 'superuser' && (
-           <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 border border-purple-200 rounded-full">
-             <ShieldCheck size={14} className="text-purple-700"/>
-             <span className="text-xs font-bold text-purple-700 uppercase">Modo Deus (Admin SaaS)</span>
-           </div>
-        )}
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+            {roleLabel}
+          </h2>
+          {userProfile?.companyName && (
+             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium hidden sm:block">
+               {userProfile.companyName}
+             </p>
+          )}
+        </div>
       </div>
 
-      {/* Lado Direito: Perfil do Usuário */}
-      <div className="flex items-center pl-4 shrink-0">
-        <div className="flex items-center gap-3 cursor-pointer p-1.5 rounded-lg hover:bg-background-100 transition-colors">
-          <div className="text-right hidden md:block">
-            <p className="font-semibold text-text-800 leading-none text-sm">{displayName}</p>
-            <p className="text-xs text-text-500 mt-1 flex items-center justify-end gap-1">
-               {getRoleIcon()}
-               {roleLabel}
-            </p>
-          </div>
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-background-50 font-bold border-2 border-background-50 shadow-sm
-            ${userProfile?.role === 'superuser' ? 'bg-purple-600' : userProfile?.role === 'admin' ? 'bg-amber-600' : 'bg-blue-600'}
-          `}>
-            {getInitials()}
-          </div>
+      <div className="flex items-center gap-3 md:gap-6">
+        <button className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+          <Bell size={20} />
+          <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
+        </button>
+
+        <div className="flex items-center gap-3 pl-3 border-l border-gray-200 dark:border-gray-700">
+           <div className="flex flex-col items-end hidden md:flex">
+             <span className="text-sm font-bold text-gray-900 dark:text-white">
+                {userProfile?.displayName || 'Usuário'}
+             </span>
+             <span className="text-xs text-gray-500 dark:text-gray-400">
+                {userProfile?.email}
+             </span>
+           </div>
+
+           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-gray-800">
+              {userProfile?.displayName ? userProfile.displayName.charAt(0).toUpperCase() : 'U'}
+           </div>
         </div>
       </div>
     </header>

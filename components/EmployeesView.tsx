@@ -6,10 +6,9 @@ import {
   onSnapshot, 
   doc, 
   setDoc,
-  serverTimestamp,
   deleteDoc
 } from 'firebase/firestore';
-import { initializeApp, deleteApp, getApp, getApps } from 'firebase/app';
+import { initializeApp, deleteApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { db, firebaseConfig } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,15 +21,14 @@ import {
   User, 
   Loader2, 
   Trash2, 
-  MoreVertical,
   Shield,
   Briefcase
 } from 'lucide-react';
 
-// Interface local para funcionário
 interface Employee {
   uid: string;
   displayName: string;
+  username: string; // Adicionado
   email: string;
   role: string;
   createdAt: any;
@@ -44,14 +42,13 @@ const EmployeesView: React.FC = () => {
   // Modal e Formulário
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
+  const [username, setUsername] = useState(''); // Estado para username
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Estados de Criação
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Busca Funcionários da Empresa Atual
   useEffect(() => {
     if (!userProfile?.companyId) return;
 
@@ -64,11 +61,10 @@ const EmployeesView: React.FC = () => {
       const list: Employee[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        // Filtrar para não mostrar o próprio Admin na lista de "funcionários" se desejar,
-        // mas geralmente é útil ver todos. Vamos manter todos.
         list.push({
           uid: doc.id,
           displayName: data.displayName || 'Sem nome',
+          username: data.username || data.email?.split('@')[0] || 'user',
           email: data.email,
           role: data.role,
           createdAt: data.createdAt
@@ -81,12 +77,11 @@ const EmployeesView: React.FC = () => {
     return () => unsubscribe();
   }, [userProfile?.companyId]);
 
-  // Lógica de Criação de Funcionário
   const handleCreateEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!name || !email || !password) {
+    if (!name || !username || !email || !password) {
       setError("Preencha todos os campos.");
       return;
     }
@@ -97,44 +92,34 @@ const EmployeesView: React.FC = () => {
 
     setCreating(true);
 
-    // TRUQUE DO FIREBASE:
-    // Para criar um usuário sem deslogar o admin atual, precisamos inicializar 
-    // uma segunda instância (app) do Firebase temporariamente.
     let secondaryApp: any;
 
     try {
-      // Nome único para o app secundário para evitar conflitos
       const appName = "secondaryAppForUserCreation";
-      
-      // Verifica se já existe, senão cria
       const existingApps = getApps();
       const foundApp = existingApps.find(app => app.name === appName);
       secondaryApp = foundApp || initializeApp(firebaseConfig, appName);
 
       const secondaryAuth = getAuth(secondaryApp);
 
-      // 1. Criar o usuário na Auth (usando a instância secundária)
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       const newUser = userCredential.user;
 
-      // 2. Criar o documento no Firestore (usando a instância principal 'db')
-      // Isso garante que o admin atual tenha permissão de escrita
       await setDoc(doc(db, 'users', newUser.uid), {
         uid: newUser.uid,
         email: email,
         displayName: name,
-        username: email.split('@')[0], // username simples gerado
-        role: 'employee', // FORÇA SER FUNCIONÁRIO
-        companyId: userProfile?.companyId, // VINCULA À EMPRESA DO ADMIN
+        username: username.toLowerCase().replace(/\s/g, ''), // Usa o username escolhido
+        role: 'employee',
+        companyId: userProfile?.companyId,
         companyName: userProfile?.companyName,
         createdAt: new Date().toISOString()
       });
 
-      // 3. Deslogar da instância secundária para limpar estado
       await signOut(secondaryAuth);
 
-      // Limpar formulário e fechar modal
       setName('');
+      setUsername('');
       setEmail('');
       setPassword('');
       setIsModalOpen(false);
@@ -147,8 +132,6 @@ const EmployeesView: React.FC = () => {
         setError('Erro ao criar funcionário. Tente novamente.');
       }
     } finally {
-      // Se necessário, deletar o app secundário para liberar memória
-      // (Algumas versões do SDK recomendam deleteApp)
       if (secondaryApp) {
         await deleteApp(secondaryApp).catch(console.error);
       }
@@ -158,10 +141,6 @@ const EmployeesView: React.FC = () => {
 
   const handleDelete = async (uid: string) => {
     if (confirm("Tem certeza que deseja remover este funcionário? O acesso dele será revogado.")) {
-      // Nota: Deletar do Firestore é fácil. Deletar do Authentication requer Cloud Functions ou Admin SDK.
-      // Como estamos no frontend, vamos apenas deletar o registro do banco de dados (users) e/ou mudar status.
-      // Para este exemplo, deletaremos o documento 'users', o que efetivamente "quebra" o login no App 
-      // (pois o App verifica o perfil no Firestore).
       try {
         await deleteDoc(doc(db, 'users', uid));
       } catch (error) {
@@ -173,94 +152,94 @@ const EmployeesView: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-       {/* Header */}
        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-text-900 flex items-center gap-3">
-            <Users className="text-accent-600" size={32} />
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+            <Users className="text-indigo-600 dark:text-indigo-400" size={32} />
             Gestão de Equipe
           </h1>
-          <p className="text-text-600 mt-2">
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
             Gerencie os acessos da <strong>{userProfile?.companyName || 'Sua Empresa'}</strong>.
           </p>
         </div>
         
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-accent-600 hover:bg-accent-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-accent-600/20 flex items-center gap-2 transition-all active:scale-95 w-fit"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all active:scale-95 w-fit"
         >
           <Plus size={20} />
           Adicionar Funcionário
         </button>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-background-50 rounded-xl border border-background-200 shadow-sm overflow-hidden">
-        {/* Toolbar */}
-        <div className="p-4 border-b border-background-200 flex items-center gap-3">
+      <div className="glass-panel rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-glass-border flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
             <input 
               type="text" 
               placeholder="Buscar por nome ou email..." 
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-background-100 border-none text-text-900 focus:ring-2 focus:ring-accent-500/50 outline-none"
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/50 dark:bg-black/20 border-none text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 outline-none placeholder-gray-500"
             />
           </div>
-          <div className="text-xs text-text-500 font-medium px-2">
+          <div className="text-xs text-gray-600 dark:text-gray-300 font-medium px-2">
             {employees.length} membros
           </div>
         </div>
 
         {loading ? (
           <div className="p-12 flex justify-center">
-            <Loader2 className="animate-spin text-accent-600" size={32} />
+            <Loader2 className="animate-spin text-indigo-600" size={32} />
           </div>
         ) : employees.length === 0 ? (
-          <div className="p-12 text-center text-text-500">
+          <div className="p-12 text-center text-gray-500">
             Nenhum funcionário encontrado. Adicione o primeiro membro da sua equipe!
           </div>
         ) : (
           <div className="overflow-x-auto">
              <table className="w-full text-left border-collapse">
                <thead>
-                <tr className="bg-background-100/50 text-text-500 text-xs uppercase tracking-wider border-b border-background-200">
-                  <th className="px-6 py-4 font-semibold">Nome</th>
-                  <th className="px-6 py-4 font-semibold">Email / Acesso</th>
+                <tr className="bg-white/20 dark:bg-black/20 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-glass-border">
+                  <th className="px-6 py-4 font-semibold">Nome / Usuário</th>
+                  <th className="px-6 py-4 font-semibold">Email</th>
                   <th className="px-6 py-4 font-semibold">Função</th>
                   <th className="px-6 py-4 font-semibold text-right">Ações</th>
                 </tr>
                </thead>
-               <tbody className="divide-y divide-background-200">
+               <tbody className="divide-y divide-glass-border">
                  {employees.map((emp) => (
-                   <tr key={emp.uid} className="hover:bg-background-100/50 transition-colors group">
+                   <tr key={emp.uid} className="hover:bg-white/10 dark:hover:bg-white/5 transition-colors group">
                      <td className="px-6 py-4">
                        <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-full bg-accent-100 text-accent-700 flex items-center justify-center font-bold text-sm">
+                         <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
                            {emp.displayName.substring(0,2).toUpperCase()}
                          </div>
-                         <span className="font-semibold text-text-900">{emp.displayName}</span>
+                         <div>
+                            <div className="font-semibold text-gray-900 dark:text-white">{emp.displayName}</div>
+                            <div className="text-xs text-gray-500">@{emp.username}</div>
+                         </div>
                        </div>
                      </td>
-                     <td className="px-6 py-4 text-text-600 text-sm">
+                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300 text-sm">
                        {emp.email}
                      </td>
                      <td className="px-6 py-4">
                        {emp.role === 'admin' ? (
-                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100/80 text-amber-800 border border-amber-200">
                            <Shield size={12} /> Gestor
                          </span>
                        ) : (
-                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100/80 text-indigo-800 border border-indigo-200">
                            <Briefcase size={12} /> Colaborador
                          </span>
                        )}
                      </td>
                      <td className="px-6 py-4 text-right">
                        <div className="flex items-center justify-end gap-2">
-                         {emp.uid !== userProfile?.uid && ( // Não pode deletar a si mesmo
+                         {emp.uid !== userProfile?.uid && (
                            <button 
                              onClick={() => handleDelete(emp.uid)}
-                             className="p-2 text-text-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                              title="Remover Acesso"
                            >
                              <Trash2 size={18} />
@@ -276,77 +255,89 @@ const EmployeesView: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de Cadastro */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background-50 rounded-2xl w-full max-w-md shadow-2xl border border-background-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-background-200 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-text-900">Novo Colaborador</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-text-400 hover:text-text-900">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="glass-panel bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-glass-border flex justify-between items-center bg-white/50 dark:bg-black/20">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Novo Colaborador</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white">✕</button>
             </div>
 
             <form onSubmit={handleCreateEmployee} className="p-6 space-y-4">
               {error && (
-                <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+                <div className="p-3 bg-red-50/90 text-red-700 text-sm rounded-lg border border-red-200">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-text-700 mb-1.5">Nome Completo</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nome Completo</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={18} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
                     type="text" 
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-500"
                     placeholder="Ex: João da Silva"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-700 mb-1.5">Email Corporativo</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nome de Usuário (Acesso)</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={18} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-500"
+                    placeholder="joaosilva"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Corporativo</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
                     type="email" 
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-500"
                     placeholder="joao@suaempresa.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-700 mb-1.5">Senha de Acesso</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Senha Provisória</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-400" size={18} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
                     type="password" 
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background-100 border border-background-300 focus:border-accent-600 focus:ring-2 focus:ring-accent-600/20 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-500"
                     placeholder="Mínimo 6 caracteres"
                   />
                 </div>
-                <p className="text-xs text-text-500 mt-1">O funcionário poderá alterar a senha depois.</p>
               </div>
 
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)} 
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-background-300 text-text-700 hover:bg-background-100 font-medium"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-glass-border text-gray-700 dark:text-gray-300 hover:bg-white/10 font-medium"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
                   disabled={creating} 
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-accent-600 hover:bg-accent-700 text-white font-medium shadow-lg shadow-accent-600/20 transition-all flex justify-center items-center gap-2"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-lg shadow-indigo-600/20 transition-all flex justify-center items-center gap-2"
                 >
                   {creating ? <Loader2 className="animate-spin" size={18} /> : 'Cadastrar'}
                 </button>

@@ -4,13 +4,8 @@ import Topbar from './Topbar';
 import { LayoutProps } from '../types';
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, userRole }) => {
-  // State for desktop collapse (default expanded on large screens)
   const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  // State for mobile drawer open/close
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  
-  // State to track if device is mobile
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -45,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
   }
 
   return (
-    <div className="min-h-screen bg-background-100 transition-colors duration-300 flex">
+    <div className="min-h-screen flex text-gray-900 dark:text-gray-100 font-sans">
       {/* Sidebar */}
       <Sidebar 
         isCollapsed={isCollapsed} 
@@ -59,16 +54,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, user
       />
 
       {/* Main Content Area */}
-      <div 
-        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out w-full`}
-      >
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
         <Topbar 
           toggleSidebar={toggleMobileSidebar} 
           isCollapsed={isCollapsed}
           roleLabel={getRoleLabel()}
         />
 
-        {/* Content Wrapper with dynamic margin for desktop sidebar */}
+        {/* Content Wrapper */}
         <main 
           className={`
             flex-1 p-4 md:p-8 mt-16 overflow-x-hidden transition-all duration-300
