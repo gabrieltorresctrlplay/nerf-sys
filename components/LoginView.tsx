@@ -7,18 +7,16 @@ import { Loader2, AlertCircle, CheckSquare, Square, User, Mail, Lock } from 'luc
 const LoginView: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   
-  // Campos
-  const [identifier, setIdentifier] = useState(''); // Serve para Email ou Username no login
+  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Estados de controle
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Erro geral (API)
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({}); // Erros por campo
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   const resetForm = () => {
     setIdentifier('');
@@ -36,7 +34,6 @@ const LoginView: React.FC = () => {
     resetForm();
   };
 
-  // Validação Customizada
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
     let isValid = true;
@@ -81,7 +78,7 @@ const LoginView: React.FC = () => {
       }
 
       if (!termsAccepted) {
-        setError('Você deve aceitar os Termos de Uso.'); // Erro geral
+        setError('Você deve aceitar os Termos de Uso.');
         isValid = false;
       }
     }
@@ -90,7 +87,6 @@ const LoginView: React.FC = () => {
     return isValid;
   };
 
-  // Lógica de Login (Email ou Username)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -101,11 +97,8 @@ const LoginView: React.FC = () => {
 
     try {
       let emailToLogin = identifier;
-
-      // Verifica se o input NÃO parece um email (simples regex)
       const emailRegex = /\S+@\S+\.\S+/;
       if (!emailRegex.test(identifier)) {
-        // Assume que é um username e busca o email no Firestore
         const q = query(collection(db, 'users'), where('username', '==', identifier));
         const querySnapshot = await getDocs(q);
 
@@ -118,7 +111,6 @@ const LoginView: React.FC = () => {
       }
 
       await signInWithEmailAndPassword(auth, emailToLogin, password);
-      // O redirecionamento acontece automaticamente pelo AuthContext
     } catch (err: any) {
       console.error(err);
       handleAuthError(err);
@@ -127,7 +119,6 @@ const LoginView: React.FC = () => {
     }
   };
 
-  // Lógica de Registro
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -137,18 +128,15 @@ const LoginView: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // 1. Verifica se Username já existe
       const q = query(collection(db, 'users'), where('username', '==', username));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         throw new Error('username-taken');
       }
 
-      // 2. Cria Usuário no Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 3. Cria Perfil no Firestore
       const newProfile: any = {
         uid: user.uid,
         email: user.email!,
@@ -169,7 +157,6 @@ const LoginView: React.FC = () => {
     }
   };
 
-  // Tratamento de Erros
   const handleAuthError = (err: any) => {
     if (err.message === 'username-taken') {
       setFieldErrors(prev => ({ ...prev, username: 'Este usuário já existe.' }));
@@ -186,28 +173,27 @@ const LoginView: React.FC = () => {
     }
   };
 
-  // Helper de estilo para inputs com erro
   const getInputClass = (fieldName: string) => `
-    w-full pl-10 pr-4 py-2.5 rounded-xl transition-all outline-none border
+    w-full pl-10 pr-4 py-2.5 rounded-xl transition-all outline-none border backdrop-blur-sm
     ${fieldErrors[fieldName] 
-      ? 'bg-red-50 border-red-300 text-red-900 focus:ring-2 focus:ring-red-200 focus:border-red-500 placeholder-red-300' 
-      : 'bg-background-100 border-background-300 text-text-900 focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600'
+      ? 'bg-red-50/50 border-red-300 text-red-900 focus:ring-2 focus:ring-red-200 focus:border-red-500 placeholder-red-300'
+      : 'glass-input focus:ring-2 focus:ring-indigo-500/50 text-gray-900 dark:text-white placeholder-gray-500 border-glass-border'
     }
   `;
 
   return (
-    <div className="min-h-screen bg-background-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-background-50 rounded-2xl border border-background-200 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="glass-panel w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500">
         
         {/* Header */}
         <div className="p-8 pb-0 text-center">
-          <div className="bg-accent-600 h-12 w-12 flex items-center justify-center rounded-xl text-background-50 mx-auto mb-4 shadow-lg shadow-accent-600/20">
-            <span className="font-bold text-2xl">S</span>
+          <div className="bg-indigo-600 h-12 w-12 flex items-center justify-center rounded-xl text-white mx-auto mb-4 shadow-lg shadow-indigo-600/30">
+            <span className="font-bold text-2xl heading-font">N</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white heading-font">
             {isLogin ? 'Bem-vindo de volta' : 'Criar nova conta'}
           </h1>
-          <p className="text-text-600 mt-2 text-sm">
+          <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm">
             {isLogin ? 'Entre com seu usuário ou email' : 'Preencha os dados abaixo'}
           </p>
         </div>
@@ -215,7 +201,7 @@ const LoginView: React.FC = () => {
         {/* Form */}
         <div className="p-8">
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2 animate-in slide-in-from-top-2">
+            <div className="mb-4 p-3 rounded-lg bg-red-50/80 border border-red-200 text-red-700 text-sm flex items-start gap-2 animate-in slide-in-from-top-2">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
@@ -223,12 +209,12 @@ const LoginView: React.FC = () => {
 
           <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-4" noValidate>
             
-            {/* MODO LOGIN: INPUT ÚNICO */}
+            {/* MODO LOGIN */}
             {isLogin && (
               <div>
-                <label className="block text-sm font-medium text-text-700 mb-1.5">Email ou Usuário</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email ou Usuário</label>
                 <div className="relative">
-                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.identifier ? 'text-red-400' : 'text-text-400'}`}>
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.identifier ? 'text-red-400' : 'text-gray-400'}`}>
                     <User size={18} />
                   </div>
                   <input 
@@ -246,13 +232,13 @@ const LoginView: React.FC = () => {
               </div>
             )}
 
-            {/* MODO REGISTRO: CAMPOS SEPARADOS */}
+            {/* MODO REGISTRO */}
             {!isLogin && (
               <>
                  <div>
-                  <label className="block text-sm font-medium text-text-700 mb-1.5">Usuário</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Usuário</label>
                   <div className="relative">
-                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.username ? 'text-red-400' : 'text-text-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.username ? 'text-red-400' : 'text-gray-400'}`}>
                       <User size={18} />
                     </div>
                     <input 
@@ -270,9 +256,9 @@ const LoginView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-text-700 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
                   <div className="relative">
-                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.email ? 'text-red-400' : 'text-text-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.email ? 'text-red-400' : 'text-gray-400'}`}>
                       <Mail size={18} />
                     </div>
                     <input 
@@ -291,11 +277,11 @@ const LoginView: React.FC = () => {
               </>
             )}
             
-            {/* SENHA (COMUM AOS DOIS) */}
+            {/* SENHA */}
             <div>
-              <label className="block text-sm font-medium text-text-700 mb-1.5">Senha</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Senha</label>
               <div className="relative">
-                <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.password ? 'text-red-400' : 'text-text-400'}`}>
+                <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.password ? 'text-red-400' : 'text-gray-400'}`}>
                   <Lock size={18} />
                 </div>
                 <input 
@@ -312,12 +298,12 @@ const LoginView: React.FC = () => {
               {fieldErrors.password && <p className="mt-1 text-xs text-red-500 font-medium ml-1">{fieldErrors.password}</p>}
             </div>
 
-            {/* CONFIRMAÇÃO DE SENHA (SÓ REGISTRO) */}
+            {/* CONFIRMAÇÃO SENHA */}
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-text-700 mb-1.5">Confirmar Senha</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Confirmar Senha</label>
                 <div className="relative">
-                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.confirmPassword ? 'text-red-400' : 'text-text-400'}`}>
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.confirmPassword ? 'text-red-400' : 'text-gray-400'}`}>
                     <Lock size={18} />
                   </div>
                   <input 
@@ -335,17 +321,17 @@ const LoginView: React.FC = () => {
               </div>
             )}
 
-            {/* TERMOS DE USO (SÓ REGISTRO) */}
+            {/* TERMOS */}
             {!isLogin && (
               <div 
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${termsAccepted ? 'border-accent-200 bg-accent-50/50' : 'border-background-200 hover:bg-background-100'}`}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors backdrop-blur-sm ${termsAccepted ? 'border-indigo-200 bg-indigo-50/50' : 'border-glass-border hover:bg-white/10'}`}
                 onClick={() => setTermsAccepted(!termsAccepted)}
               >
-                <div className={`mt-0.5 ${termsAccepted ? 'text-accent-600' : 'text-text-400'}`}>
+                <div className={`mt-0.5 ${termsAccepted ? 'text-indigo-600' : 'text-gray-400'}`}>
                   {termsAccepted ? <CheckSquare size={20} /> : <Square size={20} />}
                 </div>
-                <div className="text-sm text-text-600 leading-snug">
-                  Li e concordo com os <span className="text-accent-600 font-bold hover:underline">Termos de Uso</span> e Política de Privacidade da plataforma.
+                <div className="text-sm text-gray-600 dark:text-gray-300 leading-snug">
+                  Li e concordo com os <span className="text-indigo-600 font-bold hover:underline">Termos de Uso</span> e Política de Privacidade da plataforma.
                 </div>
               </div>
             )}
@@ -353,7 +339,7 @@ const LoginView: React.FC = () => {
             <button 
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-accent-600 hover:bg-accent-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-accent-600/20 hover:shadow-accent-600/30 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-6"
+              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/40 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-6"
             >
               {isLoading ? (
                 <>
@@ -365,13 +351,13 @@ const LoginView: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center border-t border-background-200 pt-6">
-            <p className="text-sm text-text-500 mb-2">
+          <div className="mt-6 text-center border-t border-glass-border pt-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
               {isLogin ? 'Ainda não tem acesso?' : 'Já possui cadastro?'}
             </p>
             <button 
               onClick={handleModeSwitch}
-              className="text-sm text-accent-700 hover:text-accent-800 font-bold hover:underline transition-all"
+              className="text-sm text-indigo-700 dark:text-indigo-400 font-bold hover:underline transition-all"
             >
               {isLogin ? 'Criar uma conta gratuitamente' : 'Fazer login agora'}
             </button>
